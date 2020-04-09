@@ -25,6 +25,7 @@ THE SOFTWARE.
 
 #include <string>
 #include <iostream>
+#include <vector>
 
 namespace ELFIO {
 
@@ -62,6 +63,24 @@ class section
     virtual void        set_data( const std::string& data )             = 0;
     virtual void        append_data( const char* pData, Elf_Word size ) = 0;
     virtual void        append_data( const std::string& data )          = 0;
+
+    virtual std::vector<char> get_vector_data() const
+    {
+        Elf_Xword size = get_size();
+        const char *pData = get_data();
+
+        if ( pData )
+        {
+            return std::vector<char>( pData, pData + size );
+        }
+
+        return std::vector<char>();
+    }
+
+    virtual void set_vector_data( const std::vector<char>& data )
+    {
+        set_data( &data[0], (Elf_Word)data.size() );
+    }
 
   protected:
     ELFIO_SET_ACCESS_DECL( Elf64_Off, offset );

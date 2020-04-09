@@ -39,6 +39,7 @@ THE SOFTWARE.
 #include <deque>
 #include <iterator>
 #include <typeinfo>
+#include <cstring>
 
 #include <elfio/elf_types.hpp>
 #include <elfio/elfio_utils.hpp>
@@ -796,6 +797,12 @@ class elfio
     class Sections {
       public:
 //------------------------------------------------------------------------------
+        Sections() :
+            parent(0)
+        {
+        }
+
+//------------------------------------------------------------------------------
         Sections( elfio* parent_ ) :
             parent( parent_ )
         {
@@ -808,12 +815,42 @@ class elfio
         }
 
 //------------------------------------------------------------------------------
+        section* at( unsigned int index ) const
+        {
+            section* sec = 0;
+
+            if ( parent && index < parent->sections_.size() ) {
+                sec = parent->sections_[index];
+            }
+
+            return sec;
+        }
+
+//------------------------------------------------------------------------------
         section* operator[]( unsigned int index ) const
         {
             section* sec = 0;
 
             if ( index < parent->sections_.size() ) {
                 sec = parent->sections_[index];
+            }
+
+            return sec;
+        }
+
+//------------------------------------------------------------------------------
+        section* value( const std::string& name ) const
+        {
+            section* sec = 0;
+
+            std::vector<section*>::const_iterator it;
+            for ( it = parent->sections_.begin();
+                  it != parent->sections_.end();
+                  ++it ) {
+                if ( (*it)->get_name() == name ) {
+                    sec = *it;
+                    break;
+                }
             }
 
             return sec;
@@ -850,6 +887,18 @@ class elfio
             new_section->set_name_string_offset( pos );
 
             return new_section;
+        }
+
+//------------------------------------------------------------------------------
+        bool remove(segment* pSegment)
+        {
+            std::vector<segment*>::iterator it = std::find(parent->segments_.begin(), parent->segments_.end(), pSegment);
+            if(it != parent->segments_.end())
+            {
+                parent->segments_.erase(it);
+                return true;
+            }
+            return false;
         }
 
 //------------------------------------------------------------------------------

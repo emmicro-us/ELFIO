@@ -47,15 +47,17 @@ class segment
     virtual const char* get_data() const = 0;
 
     virtual Elf_Half add_section_index( Elf_Half index, Elf_Xword addr_align ) = 0;
+    virtual Elf_Half remove_section_index( Elf_Half index )                    = 0;
     virtual Elf_Half get_sections_num()                                  const = 0;
     virtual Elf_Half get_section_index_at( Elf_Half num )                const = 0;
     virtual bool is_offset_initialized()                                 const = 0;
+
+    virtual const std::vector<Elf_Half>& get_sections()                  const = 0;
 
   protected:
     ELFIO_SET_ACCESS_DECL( Elf64_Off, offset );
     ELFIO_SET_ACCESS_DECL( Elf_Half,  index  );
     
-    virtual const std::vector<Elf_Half>& get_sections() const               = 0;
     virtual void load( std::istream& stream, std::streampos header_offset ) = 0;
     virtual void save( std::ostream& stream, std::streampos header_offset,
                                              std::streampos data_offset )   = 0;
@@ -128,6 +130,21 @@ class segment_impl : public segment
         sections.push_back( sec_index );
         if ( addr_align > get_align() ) {
             set_align( addr_align );
+        }
+
+        return (Elf_Half)sections.size();
+    }
+
+//------------------------------------------------------------------------------
+    Elf_Half
+    remove_section_index( Elf_Half index )
+    {
+        std::vector<Elf_Half>::iterator it = std::find( sections.begin(),
+            sections.end(), index );
+
+        if ( it != sections.end() )
+        {
+            sections.erase( it );
         }
 
         return (Elf_Half)sections.size();

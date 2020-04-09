@@ -146,6 +146,30 @@ class symbol_section_accessor_template
     }
 
 //------------------------------------------------------------------------------
+    bool
+    set_symbol( Elf_Xword index,
+                Elf64_Addr& value,
+                Elf_Xword& size,
+                unsigned char& bind,
+                unsigned char& type,
+                Elf_Half& section_index,
+                unsigned char& other )
+    {
+        bool ret = false;
+
+        if ( elf_file.get_class() == ELFCLASS32 ) {
+            ret = generic_set_symbol<Elf32_Sym>( index, value, size, bind,
+                                                 type, section_index, other );
+        }
+        else {
+            ret = generic_set_symbol<Elf64_Sym>( index, value, size, bind,
+                                                 type, section_index, other );
+        }
+
+         return ret;
+     }
+
+//------------------------------------------------------------------------------
     Elf_Word
     add_symbol( Elf_Word name, Elf64_Addr value, Elf_Xword size,
                 unsigned char info, unsigned char other,
@@ -301,6 +325,48 @@ class symbol_section_accessor_template
             type    = ELF_ST_TYPE( pSym->st_info );
             section_index = convertor( pSym->st_shndx );
             other   = pSym->st_other;
+
+            ret = true;
+        }
+
+        return ret;
+    }
+
+//------------------------------------------------------------------------------
+    template< class T >
+    bool
+    generic_set_symbol( Elf_Xword index,
+                Elf64_Addr& value,
+                Elf_Xword& size,
+                unsigned char& bind,
+                unsigned char& type,
+                Elf_Half& section_index,
+                unsigned char& other )
+    {
+        bool ret = false;
+
+        if ( index < get_symbols_num() ) {
+            char *pSymbolSectionData = new char[
+                symbol_section->get_size()];
+
+            memcpy(pSymbolSectionData, symbol_section->get_data(),
+                symbol_section->get_size());
+
+            const endianess_convertor& convertor = elf_file.get_convertor();
+
+            T* pSym = reinterpret_cast<T*>( pSymbolSectionData +
+                index * symbol_section->get_entry_size() );
+
+            pSym->st_value = convertor( value );
+            pSym->st_size  = convertor( size );
+            pSym->st_info  = ELF_ST_INFO( bind, type );
+            pSym->st_shndx = convertor( section_index );
+            pSym->st_other = other;
+
+            symbol_section->set_data(pSymbolSectionData,
+                symbol_section->get_size());
+
+            delete[] pSymbolSectionData;
 
             ret = true;
         }
